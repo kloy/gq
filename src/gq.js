@@ -102,8 +102,35 @@ var calculateDuration = function (gqElement) {
 */
 var gq = function (element) {
 
-	var scope = {}, eventNames, transitionEndAlreadyAttached,
-			attachTransitionEndListener, transitionendListeners = [];
+	var scope = {}, eventNames, transitionendAlreadyAttached,
+			attachTransitionendListener, transitionendListeners = [],
+			cancelListeners = [], detachTransitionendListener, transitionendListener;
+
+	transitionendListener = function (e) {
+
+		log('transitionendListener()');
+		forEach(transitionendListeners, function (fn) {
+			fn(scope);
+		});
+		detachTransitionendListener();
+	};
+
+	detachTransitionendListener = function () {
+
+		scope.element.removeEventListener(w3cTransitionend, transitionendListener);
+		transitionendAlreadyAttached = false;
+		transitionendListeners = [];
+	};
+
+	attachTransitionendListener = function () {
+
+		var listener;
+
+		if (transitionendAlreadyAttached) { return; }
+
+		scope.element.addEventListener(w3cTransitionend, transitionendListener);
+		transitionendAlreadyAttached = true;
+	};
 
 	scope.element = element;
 
@@ -163,22 +190,6 @@ var gq = function (element) {
 		return scope;
 	};
 
-	attachTransitionEndListener = function (fn) {
-
-		var listener;
-
-		if (transitionEndAlreadyAttached) { return; }
-
-		listener = function (e) {
-
-			scope.element.removeEventListener(w3cTransitionend, listener);
-			fn();
-		};
-
-		scope.element.addEventListener(w3cTransitionend, listener);
-		transitionEndAlreadyAttached = true;
-	};
-
 	/*
 		I listen for an event one time.
 	*/
@@ -195,22 +206,28 @@ var gq = function (element) {
 
 		if (eventName === 'transitionend') {
 			transitionendListeners.push(fn);
-			attachTransitionEndListener(function () {
-				forEach(transitionendListeners, function (fn) {
-					fn(scope);
-				});
-			});
+			attachTransitionendListener();
+		}
+
+		if (eventName === 'cancel') {
+			cancelListeners.push(fn);
 		}
 
 		return scope;
 	};
 
-	scope.cancel = function () {};
+	/*
+		Cancel a running animation.
+	*/
+	scope.cancel = function () {
+
+		forEach(cancelListeners, function (fn) { fn(scope); });
+		cancelListeners = [];
+		detachTransitionendListener();
+	};
 
 	eventNames = 'transitionend cancel';
-	transitionEndAlreadyAttached = false;
-
-	// attachListeners(element);
+	transitionendAlreadyAttached = false;
 
 	return scope;
 };
