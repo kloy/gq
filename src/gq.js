@@ -1,21 +1,28 @@
 /*
+	Way this is expected to work...
+
 	animating = GQ(element).
 		style('height', 0).
 		redraw().
 		style('height', '').
-		addClass('slide-down').
-		redraw().
-		one('transitionend', function (iGQ) {}).
-		one('cancel', function (iGQ) {});
+		when('transitionend', function (iGQ) {}).
+		when('cancel', function (iGQ) {}).
+		transition(function (iGQ) {});
 
-	animating.cancel();
+	if (animating.isTransitioning()) { animating.cancel(); }
 */
 (function (root, globalProp) {
 'use strict';
 
 var w3cTransitionend = 'transitionend',
 		w3cTransitionDuration = 'transition-duration',
-		w3cTransitionDelay = 'transition-delay';
+		w3cTransitionDelay = 'transition-delay',
+		sniff = {
+			transitionend: w3cTransitionend,
+			transitionDuration: w3cTransitionDuration,
+			transitionDelay: w3cTransitionDelay,
+			canTransition: true
+		};
 
 var forEach = function (arr, fn) {
 
@@ -44,57 +51,26 @@ var log = function () {
 	}
 };
 
-/*
-	I execute a callback when the transition is completed.
-*/
-// var end = function (fn) {
-
-// 	function listener () {
-
-// 		clearTimeout(transitioning);
-// 		transitioning = null;
-// 		el.removeEventListener('transitionend', listener);
-// 		fn(that);
-// 	}
-
-// 	function cancel () {
-
-// 		log('cancelled');
-// 		if (transitioning) {
-// 			listener();
-// 		}
-// 	}
-
-// 	var that = this,
-// 			el = that.element,
-// 			transitioning = null,
-// 			duration = calculateDuration(this);
-
-// 	log('end() duration', duration);
-
-// 	if (duration) {
-// 		el.addEventListener('transitionend', listener);
-// 		transitioning = setTimeout(function () {
-// 			log('transition stopped by setTimeout');
-// 			listener(that);
-// 		}, duration);
-// 	} else {
-// 		fn(this);
-// 	}
-
-// 	return ({cancel: cancel});
-// }
-
 var getComputedStyle = root.getComputedStyle;
 
-var calculateDuration = function (gqElement) {
+var calculateDuration = function (iGQ) {
 
-	var duration = gqElement.style(w3cTransitionDuration);
-	duration = duration ? parseFloat(duration) * 1000 : 0;
-	var delay = gqElement.style(w3cTransitionDelay);
-	delay = delay ? parseFloat(delay) * 1000 : 0;
+	var durationVal = iGQ.style(sniff.transitionDuration),
+			delayVal = iGQ.style(sniff.transitionDelay),
+			duration = parseFloat(durationVal),
+			delay = parseFloat(delayVal);
 
-	return duration + delay + 100;
+	log('transitionDuration', durationVal, duration);
+	log('transitionDelay', delayVal, delay);
+
+	if (durationVal.indexOf('ms') === -1 && duration) {
+		duration = duration * 1000;
+	}
+	if (delayVal.indexOf('ms') === -1 && delay) {
+		delay = delay * 1000;
+	}
+
+	return (duration + delay) ? duration + delay  + 100 : 0;
 };
 
 /*
@@ -102,34 +78,43 @@ var calculateDuration = function (gqElement) {
 */
 var gq = function (element) {
 
-	var scope = {}, eventNames, transitionendAlreadyAttached,
-			attachTransitionendListener, transitionendListeners = [],
-			cancelListeners = [], detachTransitionendListener, transitionendListener;
+	var scope = {},
+			eventNames = 'transitionend cancel',
+			transitioning = false,
+			transitionendListeners = [],
+			cancelListeners = [],
+			attachTransitionendListener,
+			transitionendTimeout,
+			detachTransitionendListener,
+			transitionendListener;
 
 	transitionendListener = function (e) {
 
 		log('transitionendListener()');
-		forEach(transitionendListeners, function (fn) {
-			fn(scope);
-		});
+		forEach(transitionendListeners, function (fn) { fn(scope); });
+		transitionendListeners = [];
 		detachTransitionendListener();
+		transitioning = false;
 	};
 
 	detachTransitionendListener = function () {
 
-		scope.element.removeEventListener(w3cTransitionend, transitionendListener);
-		transitionendAlreadyAttached = false;
-		transitionendListeners = [];
+		scope.element.removeEventListener(
+			sniff.transitionend, transitionendListener
+		);
+		clearTimeout(transitionendTimeout);
 	};
 
 	attachTransitionendListener = function () {
 
-		var listener;
+		var duration = calculateDuration(scope);
 
-		if (transitionendAlreadyAttached) { return; }
+		scope.element.addEventListener(sniff.transitionend, transitionendListener);
 
-		scope.element.addEventListener(w3cTransitionend, transitionendListener);
-		transitionendAlreadyAttached = true;
+		log('calculated duration', duration);
+		if (duration) {
+			transitionendTimeout = setTimeout(transitionendListener, duration);
+		}
 	};
 
 	scope.element = element;
@@ -190,28 +175,38 @@ var gq = function (element) {
 		return scope;
 	};
 
+	scope.isTransitioning = function () { return transitioning; };
+
 	/*
-		I listen for an event one time.
+		Apply all styles/classes for transition and listen for transitionend event.
 	*/
-	scope.one = function (eventName, fn) {
+	scope.transition = function (transitionFn) {
+
+		// if already transitioning cancel
+		if (scope.isTransitioning()) { scope.cancel(); }
+
+		transitionFn(scope);
+		transitioning = true;
+
+		if (!snif.canTransition) { transitionendListener(); }
+		else { attachTransitionendListener(); }
+
+		return scope;
+	};
+
+	/*
+		I listen for an event one time. When events should be hooked up before
+		doing a transition.
+	*/
+	scope.when = function (eventName, fn) {
 
 		if (eventNames.split(' ').indexOf(eventName) === -1) {
 			throw eventName + ' is not an acceptable event. ' + eventNames + ' only' +
 				'possible values';
 		}
-
-		if (!isFunction(fn)) {
-			throw '2nd argument must be a function.';
-		}
-
-		if (eventName === 'transitionend') {
-			transitionendListeners.push(fn);
-			attachTransitionendListener();
-		}
-
-		if (eventName === 'cancel') {
-			cancelListeners.push(fn);
-		}
+		if (!isFunction(fn)) { throw '2nd argument must be a function.'; }
+		if (eventName === 'transitionend') { transitionendListeners.push(fn); }
+		if (eventName === 'cancel') { cancelListeners.push(fn); }
 
 		return scope;
 	};
@@ -224,10 +219,8 @@ var gq = function (element) {
 		forEach(cancelListeners, function (fn) { fn(scope); });
 		cancelListeners = [];
 		detachTransitionendListener();
+		transitioning = false;
 	};
-
-	eventNames = 'transitionend cancel';
-	transitionendAlreadyAttached = false;
 
 	return scope;
 };

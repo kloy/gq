@@ -14,10 +14,9 @@ var animateFade = function () {
 
 	return GQ($('fade-block')).
 		addClass('fade').
-		redraw().
-		addClass('in').
-		one('transitionend', complete).
-		one('cancel', complete);
+		when('transitionend', complete).
+		when('cancel', complete).
+		transition(function (iGQ) { iGQ.redraw().addClass('in'); });
 };
 
 var animateCollapse = function () {
@@ -40,11 +39,12 @@ var animateCollapse = function () {
 	$gq.style('visibility', '').
 		style('height', '').
 		addClass('collapse').
-		addClass('in').
-		redraw().
-		style('height', toHeight).
-		one('transitionend', complete).
-		one('cancel', complete);
+		when('transitionend', complete).
+		when('cancel', complete).
+		transition(function (iGQ) {
+
+			iGQ.addClass('in').redraw().style('height', toHeight);
+		});
 
 	return $gq;
 };

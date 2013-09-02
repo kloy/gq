@@ -9,7 +9,7 @@ h2 {
 }
 .fade.in {
 	transition: opacity 2s;
-	transition-delay: 0.5s;
+	transition-delay: 500ms;
 	opacity: 1;
 }
 .collapse {
