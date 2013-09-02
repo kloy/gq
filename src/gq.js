@@ -16,23 +16,7 @@
 
 var w3cTransitionend = 'transitionend',
 		w3cTransitionDuration = 'transition-duration',
-		w3cTransitionDelay = 'transition-delay',
-		sniff = {
-			transitionend: w3cTransitionend,
-			transitionDuration: w3cTransitionDuration,
-			transitionDelay: w3cTransitionDelay,
-			canTransition: true
-		};
-
-var forEach = function (arr, fn) {
-
-	var length = arr.length;
-
-	while (length) {
-		--length;
-		fn(arr[length]);
-	}
-};
+		w3cTransitionDelay = 'transition-delay';
 
 var isDefined = function (value) {
 
@@ -50,6 +34,46 @@ var log = function () {
 		console.log.apply(console, arguments);
 	}
 };
+
+var forEach = function (arr, fn) {
+
+	var length = arr.length;
+
+	while (length) {
+		--length;
+		fn(arr[length]);
+	}
+};
+
+var sniff = (function () {
+
+	var detection = {},
+			style = document.body.style;
+
+	log('styles', document.body.style);
+	if ('transitionDuration' in style) {
+		detection.transitionDuration = 'transition-duration';
+		detection.transitionend = 'transitionend';
+	} else if ('webkitTransitDuration' in style) {
+		detection.transitionDuration = '-webkit-transition-duration';
+		detection.transitionend = 'webkitTransitionEnd';
+	} else {
+		detection.transitionDuration = null;
+		detection.transitionend = null;
+	}
+
+	if ('transitionDelay' in style) {
+		detection.transitionDelay = 'transition-delay';
+	} else if ('webkitTransitDelay' in style) {
+		detection.transitionDelay = '-webkit-transition-delay';
+	} else {
+		detection.transitionDelay = null;
+	}
+
+	detection.canTransition = detection.transitionend ? true : false;
+
+	return detection;
+})();
 
 var getComputedStyle = root.getComputedStyle;
 
@@ -130,6 +154,7 @@ var gq = function (element) {
 		} else {
 			return getComputedStyle(scope.element)[property];
 		}
+		log('style() ', scope.element.style);
 
 		return scope;
 	};
@@ -141,8 +166,13 @@ var gq = function (element) {
 
 		// this.element.classList.add(cssClass);
 		var className = scope.element.className;
-		className += (className === '' ? '' : ' ') + cssClass;
-		scope.element.className = className;
+
+		if (!scope.hasClass(cssClass)) {
+			className += (className === '' ? '' : ' ') + cssClass;
+			scope.element.className = className;
+		}
+
+		log('addClass() className: %s', cssClass, scope.element.className);
 
 		return scope;
 	};
@@ -154,7 +184,12 @@ var gq = function (element) {
 
 		// /(?:^|\s)MyClass(?!\S)/
 		var re = new RegExp('(?:^|\\s)' + cssClass + '(?!\\S)');
-		scope.element.className = scope.element.className.replace(re, '');
+
+		if (scope.hasClass(cssClass)) {
+			scope.element.className = scope.element.className.replace(re, '');
+		}
+
+		log('removeClass() className: %s', cssClass, scope.element.className);
 
 		return scope;
 	};

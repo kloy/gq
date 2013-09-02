@@ -9,7 +9,7 @@ var animateFade = function () {
 
 		console.debug('transitionend() fn', iGQ);
 		iGQ.removeClass('in').removeClass('fade');
-		toggleFadeControls();
+		showFadeControl();
 	};
 
 	return GQ($('fade-block')).
@@ -24,7 +24,7 @@ var animateCollapse = function () {
 	var complete = function (iGQ) {
 
 		iGQ.removeClass('in').removeClass('collapse').style('height', '');
-		toggleCollapseControls();
+		showCollapseControls();
 	};
 
 	var $gq = GQ($('collapse-block'));
@@ -49,26 +49,28 @@ var animateCollapse = function () {
 	return $gq;
 };
 
-var toggleFadeControls = function () {
+var showFadeControl = function () {
 
-	if (GQ($triggerFade).hasClass('hide')) {
-		GQ($triggerFade).removeClass('hide');
-		GQ($cancelFade).addClass('hide');
-	} else {
-		GQ($triggerFade).addClass('hide');
-		GQ($cancelFade).removeClass('hide');
-	}
+	GQ($triggerFade).removeClass('hide');
+	GQ($cancelFade).addClass('hide');
 };
 
-var toggleCollapseControls = function () {
+var hideFadeControl = function () {
 
-	if (GQ($triggerCollapse).hasClass('hide')) {
-		GQ($triggerCollapse).removeClass('hide');
-		GQ($cancelCollapse).addClass('hide');
-	} else {
-		GQ($triggerCollapse).addClass('hide');
-		GQ($cancelCollapse).removeClass('hide');
-	}
+	GQ($triggerFade).addClass('hide');
+	GQ($cancelFade).removeClass('hide');
+};
+
+var showCollapseControls = function () {
+
+	GQ($triggerCollapse).removeClass('hide');
+	GQ($cancelCollapse).addClass('hide');
+};
+
+var hideCollapseControls = function () {
+
+	GQ($triggerCollapse).addClass('hide');
+	GQ($cancelCollapse).removeClass('hide');
 };
 
 var animatingFade,
@@ -81,25 +83,26 @@ var animatingFade,
 $triggerFade.addEventListener('click', function (e) {
 
 	animatingFade = animateFade();
-	toggleFadeControls();
+	hideFadeControl();
 });
 
 $cancelFade.addEventListener('click', function (e) {
 
 	animatingFade.cancel();
-	toggleFadeControls();
+	console.log('fade cancel clicked');
+	showFadeControl();
 });
 
 $triggerCollapse.addEventListener('click', function (e) {
 
 	animatingCollapse = animateCollapse();
-	toggleCollapseControls();
+	hideCollapseControls();
 });
 
 $cancelCollapse.addEventListener('click', function (e) {
 
 	animatingCollapse.cancel();
-	toggleCollapseControls();
+	showCollapseControls();
 });
 
 })();
