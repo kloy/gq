@@ -188,7 +188,7 @@ var gq = function (element) {
 		transitionFn(scope);
 		transitioning = true;
 
-		if (!snif.canTransition) { transitionendListener(); }
+		if (!sniff.canTransition) { transitionendListener(); }
 		else { attachTransitionendListener(); }
 
 		return scope;
