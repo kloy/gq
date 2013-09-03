@@ -1,4 +1,9 @@
 /*
+	GQ - Library for programmatic CSS 3 Transitions.
+
+	@author Keith Loy
+	@license MIT
+
 	Way this is expected to work...
 
 	animating = GQ(element).
@@ -194,6 +199,9 @@ var gq = function (element) {
 		return scope;
 	};
 
+	/*
+		I check if an element has passed class.
+	*/
 	scope.hasClass = function (cssClass) {
 
 		return (scope.element.className.indexOf(cssClass) !== -1);
@@ -210,10 +218,14 @@ var gq = function (element) {
 		return scope;
 	};
 
+	/*
+		I expose whether or not the element is transitioning.
+	*/
 	scope.isTransitioning = function () { return transitioning; };
 
 	/*
-		Apply all styles/classes for transition and listen for transitionend event.
+		I execute a callback to initiate a transitioning and setup
+		transitionend event listeneing.
 	*/
 	scope.transition = function (transitionFn) {
 
@@ -230,7 +242,7 @@ var gq = function (element) {
 	};
 
 	/*
-		I listen for an event one time. When events should be hooked up before
+		I listen for an event one time. "When" events should be hooked up before
 		doing a transition.
 	*/
 	scope.when = function (eventName, fn) {
@@ -247,7 +259,7 @@ var gq = function (element) {
 	};
 
 	/*
-		Cancel a running animation.
+		I cancel a running animation.
 	*/
 	scope.cancel = function () {
 
